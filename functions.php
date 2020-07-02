@@ -48,3 +48,64 @@ function getAllCatProducts(int $id_parent = 0, array $tmp = array())
     }
     return $result;
 }
+
+/**
+ * Функция для вывода категорий
+ * @param array $data многомерный массив категорий и товаров
+ * @param int $level уровень вложенности, по умолчанию 0, т.е. выводятся только категории самого верхнего уровня
+ * @param string $tmp вспомогательный параметр для рекурсивного вызова
+ *
+ * @return string возвращает <ul> список
+ */
+function createUl(array $data = array(), int $level = 0, string $tmp = "") {
+    $result = "<ul>";
+
+    if ($level === 0) {
+        foreach ($data as $key=>$value) {
+            $result .= '<li><a href="'. $_SERVER['HTTP_HOST'] . '/groups/index_groups.php?group=0' .'">' . $key . '</a></li>';
+        }
+    }
+
+//    foreach ($data as $key=>$value) {
+//        var_dump($key);
+//        if (is_array($value) && $key !== "meta") { // если массив то рекурсивно вызываем
+//            $result .= createUl($value, 0, $result);
+//        } else {
+//            $result .= "<li>" . $value . "</li>";
+//        }
+//    }
+
+    return $result . "</ul>";
+}
+
+/**
+ * Функция подсчета кол-ва товаров в массиве и во всех вложенных массивах
+ * @param array $products многомерный массив с продуктами,
+ * где ключ массива это название категории и в каждой категории кроме продуктов должен лежать служебный массив "meta"
+ *
+ * @param int $counter вспомогательный параметр для рекурсивного подсчета кол-ва всех продуктов.
+ *
+ * @return int $amount общее кол-во продуктов во всех вложенных массивах
+ */
+function countChildProducts(array $products = array(), int $counter = 0) {
+
+    // Если пустой массив возвращаем ноль
+    if (empty($products)) {
+        return 0;
+    }
+
+    foreach ($products as $key=>$value) {
+        if (is_array($value)) {
+
+            // Если в подмассиве meta указано кол-во продуктов, то прибавлеем их к $counter
+            if ($key === 'meta' && (isset($products['meta']['product_amount']))) {
+                $counter += $products['meta']['product_amount'];
+            }
+
+            // Рекурсивный вызов
+            $counter = countChildProducts($value, $counter);
+
+        }
+    }
+    return $counter;
+}
