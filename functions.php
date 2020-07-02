@@ -85,7 +85,7 @@ function createUl(array $data = array(), int $level = 0, string $tmp = "") {
  *
  * @param int $counter вспомогательный параметр для рекурсивного подсчета кол-ва всех продуктов.
  *
- * @return int $amount общее кол-во продуктов во всех вложенных массивах
+ * @return int $counter общее кол-во продуктов во всех вложенных массивах
  */
 function countChildProducts(array $products = array(), int $counter = 0) {
 
