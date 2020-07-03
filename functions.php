@@ -28,6 +28,7 @@ function getAllCatProducts(int $id_parent = 0, array $tmp = array())
 
                 // сохраняем id группы во вложенный массив meta, чтобы можно было его потом использовать в случае надобности
                 $result[$group_row['name']]['meta']['id_group'] = $group_row['id'];
+                $result[$group_row['name']]['meta']['id_parent'] = $group_row['id_parent'];
 
                 // Для текущей категории выбрать принадлежащие ей products (если они есть)
                 if ($stmt2 = $mysqli->prepare('SELECT id, id_group, name FROM `products` WHERE id_group=?')) {
@@ -50,32 +51,57 @@ function getAllCatProducts(int $id_parent = 0, array $tmp = array())
 }
 
 /**
- * Функция для вывода категорий
- * @param array $data многомерный массив категорий и товаров
- * @param int $level уровень вложенности, по умолчанию 0, т.е. выводятся только категории самого верхнего уровня
- * @param string $tmp вспомогательный параметр для рекурсивного вызова
- *
- * @return string возвращает <ul> список
+ * Функция обходит многомерный массив и на его основе создает многомерный ul список.
+ * @param array $data
+ * @param string $str вспомогательный параметр для рекурсии
+ * @return string
  */
-function createUl(array $data = array(), int $level = 0, string $tmp = "") {
-    $result = "<ul>";
+function createUl(array $data = array(), string $str = "") {
 
-    if ($level === 0) {
-        foreach ($data as $key=>$value) {
-            $result .= '<li><a href="'. $_SERVER['HTTP_HOST'] . '/groups/index_groups.php?group=0' .'">' . $key . '</a></li>';
+    $result = "<ul>" . $str;
+
+    foreach ($data as $key=>$value) {
+        if (is_array($value) && $key !== 'meta') {
+
+            $result .= '<li><a href="index_groups.php?group='
+                . $value['meta']['id_group'] . '">' . $key . '</a><span> - '
+                . countChildProducts($value) . '</span>' // Подсчет кол-ва товаров в текущей категории и в дочерних
+                . createUl($value, $str) . '</li>'; // Рекурсивный вызов для вложенных массивов
+
+        } else if ($key === 'meta') {
+            continue; // массив с метаданными не включаем в список
+        } else {
+            $result .= '<li>' . $value . '</li>';
         }
     }
 
-//    foreach ($data as $key=>$value) {
-//        var_dump($key);
-//        if (is_array($value) && $key !== "meta") { // если массив то рекурсивно вызываем
-//            $result .= createUl($value, 0, $result);
-//        } else {
-//            $result .= "<li>" . $value . "</li>";
-//        }
-//    }
-
     return $result . "</ul>";
+}
+
+/**
+ * Выбирает из многомерного массива все продукты в один одномерный список, оборачивает каждый продукт в <li> тег.
+ * @param array $data
+ * @return string строка вида <li>продукт</li><li>продукт</li>
+ */
+function createSimpleLi(array $data = array())
+{
+
+    $result = "";
+    if (empty($data)) {
+        return "";
+    }
+
+    foreach ($data as $key=>$value) {
+        if (is_array($value) && $key !== 'meta') {
+            $result .= createSimpleLi($value);
+        } else if($key === "meta") { // массив с метаданными пропускаем
+            continue;
+        } else {
+            $result .= "<li>" . $value . "</li>";
+        }
+    }
+
+    return $result;
 }
 
 /**
