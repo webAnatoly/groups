@@ -53,20 +53,30 @@ function getAllCatProducts(int $id_parent = 0, array $tmp = array())
 /**
  * Функция обходит многомерный массив и на его основе создает многомерный ul список.
  * @param array $data
+ * @param int $stop_lvl уровень вложенности до которого нужно отображать дерево категорий, по умолчанию отображается всё дерево
+ * @param int $current_lvl вспомогательный параметр, хранящий текущи уровень вложенности дерева
  * @param string $str вспомогательный параметр для рекурсии
  * @return string
  */
-function createUl(array $data = array(), string $str = "") {
+function createUl(array $data = array(), int $stop_lvl = 999, string $str = "", int $current_lvl = 0) {
 
     $result = "<ul>" . $str;
 
     foreach ($data as $key=>$value) {
+
         if (is_array($value) && $key !== 'meta') {
+
+            if($current_lvl > $stop_lvl) {
+                // Если текущий уровень вложенности больше стоп уровня, то ничего не выводим.
+                continue;
+            };
 
             $result .= '<li><a href="index_groups.php?group='
                 . $value['meta']['id_group'] . '">' . $key . '</a><span> - '
                 . countChildProducts($value) . '</span>' // Подсчет кол-ва товаров в текущей категории и в дочерних
-                . createUl($value, $str) . '</li>'; // Рекурсивный вызов для вложенных массивов
+                . '<span>' . ' current_level: ' . $current_lvl . '</span>'
+                . createUl($value, $stop_lvl, $str, $current_lvl += 1) . '</li>'; // Рекурсивный вызов для вложенных массивов
+            $current_lvl -= 1;
 
         } else if ($key === 'meta') {
             continue; // массив с метаданными не включаем в список
