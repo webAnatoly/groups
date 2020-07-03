@@ -74,7 +74,6 @@ function createUl(array $data = array(), int $stop_lvl = 999, string $str = "", 
             $result .= '<li><a href="index_groups.php?group='
                 . $value['meta']['id_group'] . '">' . $key . '</a><span> - '
                 . countChildProducts($value) . '</span>' // Подсчет кол-ва товаров в текущей категории и в дочерних
-                . '<span>' . ' current_level: ' . $current_lvl . '</span>'
                 . createUl($value, $stop_lvl, $str, $current_lvl += 1) . '</li>'; // Рекурсивный вызов для вложенных массивов
             $current_lvl -= 1;
 
