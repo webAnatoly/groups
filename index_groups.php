@@ -11,9 +11,25 @@ if (mysqli_connect_errno()) {
 }
 
 if (isset($_GET['group']) && is_numeric($_GET['group']) && $_GET['group'] > 0) {
-    echo "do complicated works";
-} else {
+    $allProducts = getAllCatProducts();
+
     echo "<pre>";
-    print_r(getAllCatProducts(0));
+    print_r(getGroup($allProducts, $_GET['group']));
     echo "</pre>";
+
+    $subProducts = getGroup($allProducts, $_GET['group']);
+
+    echo createUl($subProducts);
+
+    echo "<ul>";
+    echo createSimpleLi($subProducts);
+    echo "</ul>";
+
+} else {
+    $products = getAllCatProducts();
+    echo createUl($products, 0);
+    echo "<h3>Пока не выбрана ни одна группа – выводится список всех товаров.</h3>";
+    echo "<ul>";
+    echo createSimpleLi($products);
+    echo "</ul>";
 }

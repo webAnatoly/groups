@@ -8,7 +8,7 @@
  *
  * @return array
  */
-function getAllCatProducts(int $id_parent = 0, array $tmp = array())
+function getAllCatProducts(int $id_parent = 0, int $stop_lvl = 999, array $tmp = array(), int $current_lvl = 0)
 {
 
     global $mysqli;
@@ -23,12 +23,21 @@ function getAllCatProducts(int $id_parent = 0, array $tmp = array())
         if ($groups->num_rows > 0) {
             while ($group_row = $groups->fetch_assoc()) {
 
-                // рекурсивно вызываем эту же функцию и в качестве id_parent передаем ей id текущей категории
-                $result[$group_row['name']] = getAllCatProducts($group_row['id'], $result);
+                // Условие глубины выборки. Если функции был передан $stop_lvl = 0, то функция вернет одномерный массив,
+                // если $stop_lvl = 1, то двумерный и т.д. По умолчанию $stop_lvl = 999
+                if (!($stop_lvl >= $current_lvl)) {
+                    continue;
+                }
+
+                /* Рекурсивно вызываем эту же функцию и в качестве id_parent передаем ей id текущей категории
+                $current_lvl увеличиваем на единицу и тоже передаем, а для текущего вызова $current_lvl уменьшаем обратно на единицу */
+                $result[$group_row['name']] = getAllCatProducts($group_row['id'], $stop_lvl, $result, $current_lvl += 1);
+                $current_lvl -= 1;
 
                 // сохраняем id группы во вложенный массив meta, чтобы можно было его потом использовать в случае надобности
                 $result[$group_row['name']]['meta']['id_group'] = $group_row['id'];
                 $result[$group_row['name']]['meta']['id_parent'] = $group_row['id_parent'];
+                $result[$group_row['name']]['meta']['level_in_tree'] = $current_lvl;
 
                 // Для текущей категории выбрать принадлежащие ей products (если они есть)
                 if ($stmt2 = $mysqli->prepare('SELECT id, id_group, name FROM `products` WHERE id_group=?')) {
@@ -90,6 +99,26 @@ function createUl(array $data = array(), int $stop_lvl = 999, bool $showProducts
 }
 
 /**
+ * @param array $data
+ * @param int $id_group
+ * @param string $catName
+ * @return string возвращает имя категории
+ */
+function getCatName(array $data, int $id_group, string $catName = '')
+{
+
+    $catName = '';
+    foreach ($data as $key=>$value) {
+        if (isset($value['meta']['id_group']) && $value['meta']['id_group'] === $id_group) {
+            return $key;
+        } else if (is_array($value) && $key !== 'meta'){
+            $catName .= getCatName($value, $id_group, $catName);
+        }
+    }
+    return $catName;
+}
+
+/**
  * Выбирает из многомерного массива все продукты в один одномерный список, оборачивает каждый продукт в <li> тег.
  * @param array $data
  * @return string строка вида <li>продукт</li><li>продукт</li>
@@ -145,4 +174,23 @@ function countChildProducts(array $products = array(), int $counter = 0) {
         }
     }
     return $counter;
+}
+
+/** Выбирает из многомерного массива продукты по id_group
+ * @param array $products
+ * @param int $id_group
+ * @param array $tmp вспомогательный массив для рекурсии
+ * @return array
+ */
+function getGroup(array $products, int $id_group, array $tmp = []) {
+
+    foreach ($products as $key=>$value) {
+        if (isset($value['meta']['id_group']) && $value['meta']['id_group'] === $id_group) {
+            $tmp[$key] = $value;
+        } else if (is_array($value) && $key !== 'meta') {
+            $tmp = getGroup($value, $id_group, $tmp);
+        }
+    }
+
+    return $tmp;
 }
