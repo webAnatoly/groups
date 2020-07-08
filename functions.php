@@ -128,8 +128,6 @@ function getCategories2(int $id_parent = 0, $parent_tree = [])
                     $stmt2->close();
                 }
 
-                $amount_product_all = countChidren($group_row['id']);
-
                 $result[$group_row['id']] = [
                     'id' => $group_row['id'],
                     'id_parent' => $group_row['id_parent'],
@@ -137,7 +135,6 @@ function getCategories2(int $id_parent = 0, $parent_tree = [])
                     'child' => getCategories2($group_row['id'], $parent_tree),
                     'parent_tree' => $parent_tree, // айдишники родительских категорий
                     'product_amount' => $product_amount, // кол-во товаров в текущей категории
-                    'product_amount_all' => $amount_product_all, // кол-во товаров во всех подкатегориях, включая текущею категорию
                 ];
             }
         }
