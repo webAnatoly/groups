@@ -92,6 +92,60 @@ function getCategories(int $id_group = 0, $result = '')
     return $result;
 }
 
+/**
+ * Выбирает из базы категории.
+ * @param int $id_parent
+ * @param array $parent_tree // параметр для рекурсии в который складываются id всех родительских категорий
+ * @return array многомерный массив в котором ключ соответствует id категории
+ *  'product_amount' - кол-во продуктов в текущей категории
+ *  'child' - вложенный массив дочерней категории
+ */
+function getCategories2(int $id_parent = 0, $parent_tree = [])
+{
+
+    global $mysqli;
+    $result = array();
+    $product_amount = 0;
+
+    if ($id_parent > 0) {
+        $parent_tree[] = $id_parent;
+    }
+
+    if ($stmt = $mysqli->prepare('SELECT id, id_parent, name FROM `groups` WHERE id_parent=?')) {
+
+        $stmt->bind_param('d', $id_parent);
+        $stmt->execute();
+        $groups = $stmt->get_result();
+
+        if ($groups->num_rows > 0) {
+            while ($group_row = $groups->fetch_assoc()) {
+
+                if ( $stmt2 = $mysqli->prepare('SELECT COUNT(id) FROM `products` WHERE id_group=?')) {
+                    $stmt2->bind_param('d', $group_row['id']);
+                    $stmt2->execute();
+                    $stmt2->bind_result($product_amount);
+                    $stmt2->fetch();
+                    $stmt2->close();
+                }
+
+                $amount_product_all = countChidren($group_row['id']);
+
+                $result[$group_row['id']] = [
+                    'id' => $group_row['id'],
+                    'id_parent' => $group_row['id_parent'],
+                    'name' => $group_row['name'],
+                    'child' => getCategories2($group_row['id'], $parent_tree),
+                    'parent_tree' => $parent_tree, // айдишники родительских категорий
+                    'product_amount' => $product_amount, // кол-во товаров в текущей категории
+                    'product_amount_all' => $amount_product_all, // кол-во товаров во всех подкатегориях, включая текущею категорию
+                ];
+            }
+        }
+        $stmt->close();
+    }
+    return $result;
+}
+
 
 /**
  * Достает из базы родительские категории от текущей категории, до самой верхней родительской категории

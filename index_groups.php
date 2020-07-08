@@ -10,6 +10,18 @@ if (mysqli_connect_errno()) {
     exit();
 }
 
+echo "<style>
+body {
+    background-color: #7895a1;
+}
+}</style>";
+
+echo "<pre>";
+$r= getCategories2(0);
+print_r($r);
+echo "</pre>";
+
+
 if (isset($_GET['group']) && is_numeric($_GET['group']) && $_GET['group'] > 0) {
     $allProducts = getAllCatProducts();
 
