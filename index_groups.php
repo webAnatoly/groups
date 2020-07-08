@@ -13,13 +13,34 @@ if (mysqli_connect_errno()) {
 if (isset($_GET['group']) && is_numeric($_GET['group']) && $_GET['group'] > 0) {
     $allProducts = getAllCatProducts();
 
-    echo "<pre>";
-    print_r(getGroup($allProducts, $_GET['group']));
-    echo "</pre>";
+//    echo "<pre>";
+//    print_r(getGroup($allProducts, $_GET['group']));
+//    echo "</pre>";
+
+    $categories = getCategories((int) $_GET['group']);
+//    $categories = array_reverse($categories);
+    $categories = $categories;
+
+
+    $parentCats = getParentCategories($_GET['group']);
+
+    echo "<ul>";
+    foreach(array_reverse($parentCats) as $li) {
+        echo $li;
+    }
+    echo "</ul>";
+
+    var_dump($categories);
+
+//    echo "<ul>";
+//    foreach($categories as $li) {
+//        echo $li;
+//    }
+//    echo "</ul>";
 
     $subProducts = getGroup($allProducts, $_GET['group']);
 
-    echo createUl($subProducts);
+//    echo createUl($subProducts);
 
     echo "<ul>";
     echo createSimpleLi($subProducts);

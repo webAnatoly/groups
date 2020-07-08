@@ -59,6 +59,74 @@ function getAllCatProducts(int $id_parent = 0, int $stop_lvl = 999, array $tmp =
     return $result;
 }
 
+function getCategories(int $id_group = 0, $result = '')
+{
+    global $mysqli;
+    $id = $id_group;
+
+    // Получить группу
+    if ($stmt = $mysqli->prepare('SELECT id, id_parent, name FROM `groups` WHERE id=?')) {
+        $stmt->bind_param('d', $id);
+        $stmt->execute();
+        $stmt->store_result();
+        $stmt->bind_result($f_id, $f_id_parent, $f_name);
+        $stmt->fetch();
+        $result .= '<li><a href="index_groups.php?group='. $id_group .'">' . $f_name . ' <span> '. countChidren($id_group) .'</span></a></li>';
+        $stmt->close();
+    }
+
+    // Получить подгруппы
+    if ($stmt = $mysqli->prepare('SELECT id, id_parent, name FROM `groups` WHERE id_parent=?')) {
+        $stmt->bind_param('d', $f_id);
+        $stmt->execute();
+        $groups = $stmt->get_result();
+
+        if ($groups->num_rows > 0) {
+            while ($group_row = $groups->fetch_assoc()) {
+                $result =  getCategories((int) $group_row['id'], $result); // рекурсия
+            }
+        }
+        $stmt->close();
+    }
+
+    return $result;
+}
+
+
+/**
+ * Достает из базы родительские категории от текущей категории, до самой верхней родительской категории
+ * @param int $id_group
+ * @param array $result
+ * @return array
+ */
+function getParentCategories(int $id_group = 0, $result = array())
+{
+    global $mysqli;
+
+    if ($id_group == 0) {
+        return $result;
+    }
+
+    // Получить группу
+    if ($stmt = $mysqli->prepare('SELECT id, id_parent, name FROM `groups` WHERE id=?')) {
+        $stmt->bind_param('d', $id_group);
+        $stmt->execute();
+        $stmt->store_result();
+        $stmt->bind_result($f_id, $f_id_parent, $f_name);
+        $stmt->fetch();
+        $result[] = '<li><a href="index_groups.php?group='. $id_group .'">' . $f_name . ' <span> '. countChidren($id_group) .'</span></a></li>';
+        $stmt->close();
+    }
+
+
+    // Получить родительскую группу
+    if (isset($f_id_parent) && $f_id_parent > 0) {
+        $result = getParentCategories((int) $f_id_parent, $result); // рекурсия
+    }
+
+    return $result;
+}
+
 /**
  * Функция обходит многомерный массив и на его основе создает многомерный ul список.
  * @param array $data
@@ -176,7 +244,46 @@ function countChildProducts(array $products = array(), int $counter = 0) {
     return $counter;
 }
 
-/** Выбирает из многомерного массива продукты по id_group
+/**
+ * Получает id группы и рекурсивно подсчитывает кол-во товаров в группе и во всех вложенных подгруппах
+ * @param int $id_group
+ * @return int
+ */
+function countChidren ($id_group = 0)
+{
+    global $mysqli;
+    $result = 0;
+
+    // Посчитать кол-во продуктов для текущей группы
+    if ($stmt = $mysqli->prepare('SELECT COUNT(id) FROM products WHERE id_group=?')) {
+
+        $stmt->bind_param('d', $id_group);
+        $stmt->execute();
+        $stmt->bind_result($count);
+        $stmt->fetch();
+        $result += isset($count) ? (int) $count : 0;
+        $stmt->close();
+    }
+
+    // Получить вложенные подгруппы и посчитать кол-во продуктов в них
+    if ($stmt = $mysqli->prepare('SELECT id, id_parent, name FROM `groups` WHERE id_parent=?')) {
+
+        $stmt->bind_param('d', $id_group);
+        $stmt->execute();
+        $groups = $stmt->get_result();
+
+        if ($groups->num_rows > 0) {
+            while ($group_row = $groups->fetch_assoc()) {
+                $result += countChidren($group_row['id']);
+            }
+        }
+        $stmt->close();
+    }
+    return $result;
+}
+
+/**
+ * Выбирает из многомерного массива продукты по id_group
  * @param array $products
  * @param int $id_group
  * @param array $tmp вспомогательный массив для рекурсии
